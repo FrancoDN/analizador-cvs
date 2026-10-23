@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel de RRHH</title>
+<style>
+  :root {
+    --papel: #F5F3EE;
+    --hoja: #FBFAF7;
+    --linea: #DDD8CC;
+    --tinta: #1E2228;
+    --gris: #5A6270;
+    --azul: #2F6FB0;
+    --azul-claro: #B9D0E8;
+    --oxido: #B04A17;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--papel); color: var(--tinta);
+         font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  :focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+  button { font: inherit; padding: 7px 14px; border-radius: 6px; border: 1px solid var(--tinta);
+           background: var(--tinta); color: #fff; cursor: pointer; }
+  button.sec { background: transparent; color: var(--tinta); }
+  button:disabled { opacity: .4; cursor: default; }
+  input[type=password], input[type=number] { font: inherit; padding: 7px 10px; border: 1px solid var(--linea);
+           border-radius: 6px; background: #fff; color: var(--tinta); }
+
+  /* ---------- ingreso ---------- */
+  #ingreso { min-height: 100%; display: grid; place-items: center; padding: 24px; }
+  #ingreso form { width: min(360px, 100%); }
+  #ingreso h1 { font-size: 30px; letter-spacing: -0.02em; margin: 0 0 6px; }
+  #ingreso p { color: var(--gris); margin: 0 0 22px; }
+  #ingreso label { display: block; font-weight: 600; margin-bottom: 6px; }
+  #ingreso input { width: 100%; margin-bottom: 14px; }
+  #ingreso button { width: 100%; padding: 10px; }
+  .error { color: var(--oxido); min-height: 22px; margin-top: 10px; }
+
+  /* ---------- barra ---------- */
+  .barra { display: flex; align-items: center; gap: 24px; padding: 0 24px; height: 56px;
+           background: var(--tinta); color: #E9E6DF; }
+  .barra b { font-weight: 600; color: #fff; }
+  .pestanas { display: flex; gap: 4px; height: 100%; }
+  .pestanas button { background: none; border: 0; border-radius: 0; color: #B8BCC4; padding: 0 14px;
+                     border-bottom: 3px solid transparent; height: 100%; }
+  .pestanas button[aria-selected=true] { color: #fff; border-bottom-color: var(--azul-claro); }
+  .barra .der { margin-left: auto; display: flex; gap: 18px; align-items: center; font-size: 14px; }
+  .barra a { color: #E9E6DF; }
+  .barra .salir { background: none; border: 1px solid #5A6270; color: #E9E6DF; padding: 4px 12px; }
+  #ia { color: #B8BCC4; }
+
+  /* ---------- postulaciones ---------- */
+  .vista { padding: 20px 24px 40px; }
+  .caja { background: var(--hoja); border: 1px solid var(--linea); border-radius: 8px; padding: 18px; }
+  h2 { font-size: 16px; font-weight: 600; margin: 0 0 14px; }
+  .nota { font-size: 13px; color: var(--gris); }
+
+  .cinta { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.3fr) auto 150px;
+           gap: 18px; align-items: center; }
+  .flecha { color: var(--gris); font-size: 22px; }
+  .tramo h3 { font-size: 14px; font-weight: 600; margin: 0 0 8px; color: var(--gris); }
+  .espera { display: flex; flex-direction: row-reverse; justify-content: flex-start; gap: 5px; min-height: 52px; align-items: flex-end; flex-wrap: wrap-reverse; }
+  .hoja { width: 34px; height: 44px; border-radius: 3px; background: #fff; border: 1.5px solid var(--linea);
+          font-size: 12px; font-weight: 600; display: grid; place-items: center; color: var(--gris); flex: none; }
+  .hoja.prueba { border-style: dashed; }
+  .mas { align-self: center; font-size: 13px; color: var(--gris); padding: 0 4px; }
+  .mesas { display: flex; flex-direction: column; gap: 8px; }
+  .espera.vacia { flex-direction: row; }
+  .mesa { display: grid; grid-template-columns: 118px 1fr; gap: 10px; align-items: center; font-size: 14px; }
+  .mesa .quien { color: var(--gris); font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .mesa .pista { position: relative; height: 34px; border: 1.5px solid var(--linea); border-radius: 6px;
+                 background: #fff; overflow: hidden; display: flex; align-items: center; padding: 0 10px; }
+  .mesa .avance { position: absolute; inset: 0 auto 0 0; background: var(--azul-claro); }
+  .mesa .pista span { position: relative; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mesa .libre { color: var(--gris); font-style: italic; }
+  .listas b { display: block; font-size: 40px; line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .listas span { font-size: 13px; color: var(--gris); }
+
+  .acciones { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center; margin-top: 18px;
+              padding-top: 14px; border-top: 1px solid var(--linea); }
+  .acciones .grupo { display: flex; gap: 8px; align-items: center; }
+  .acciones input { width: 70px; }
+  .enlace-red { margin-left: auto; font-size: 14px; }
+  .enlace-red b { font-size: 18px; font-variant-numeric: tabular-nums; }
+
+  .grilla { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; margin-top: 20px; align-items: start; }
+  .cabeza { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .cabeza label { font-size: 14px; display: flex; gap: 6px; align-items: center; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; font-weight: 600; color: var(--gris); font-size: 13px; padding: 6px 8px; border-bottom: 1px solid var(--linea); white-space: nowrap; }
+  td { padding: 7px 8px; border-bottom: 1px solid #ECE8DF; vertical-align: top; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: #F1EEE7; }
+  tbody tr.elegida { background: #E6EEF7; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .puntaje { display: flex; align-items: center; gap: 8px; }
+  .puntaje span { width: 26px; text-align: right; font-variant-numeric: tabular-nums; }
+  .puntaje i { display: block; height: 6px; background: var(--azul); border-radius: 3px; }
+  .estado { font-size: 13px; white-space: nowrap; }
+  .estado.en-cola { color: var(--gris); }
+  .estado.analizando { color: var(--azul); font-weight: 600; }
+  .estado.error, .no { color: var(--oxido); }
+  .tecs, .sub { color: var(--gris); font-size: 13px; }
+  .vacio { color: var(--gris); padding: 18px 0 4px; }
+
+  .detalle { position: sticky; top: 20px; }
+  .detalle h2 { font-size: 20px; margin-bottom: 4px; }
+  .detalle .botones { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 18px; }
+  .detalle .botones .peligro { border-color: var(--oxido); color: var(--oxido); background: transparent; margin-left: auto; }
+  .detalle dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0 0 14px; font-size: 14px; }
+  .detalle dt { color: var(--gris); }
+  .detalle dd { margin: 0; }
+  .grande { font-size: 34px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+  details { margin-top: 10px; border-top: 1px solid var(--linea); padding-top: 10px; }
+  summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+  pre { white-space: pre-wrap; word-break: break-word; font: 12.5px/1.45 ui-monospace, Consolas, monospace;
+        background: #fff; border: 1px solid var(--linea); border-radius: 6px; padding: 10px; max-height: 320px; overflow: auto; }
+
+  /* ---------- laboratorio ---------- */
+  #vista-lab { padding: 0; }
+  #vista-lab iframe { display: block; width: 100%; height: calc(100vh - 56px); border: 0; }
+
+  @media (max-width: 1100px) {
+    .grilla { grid-template-columns: 1fr; }
+    .detalle { position: static; }
+    .cinta { grid-template-columns: 1fr; }
+    .flecha { display: none; }
+    .barra { gap: 12px; padding: 0 12px; overflow-x: auto; }
+    #ia { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ingreso -->
+<div id="ingreso" hidden>
+  <form id="form-ingreso">
+    <h1>Panel de RRHH</h1>
+    <p>Postulaciones en vivo y el laboratorio de concurrencia.</p>
+    <label for="clave">Clave</label>
+    <input type="password" id="clave" autocomplete="current-password" autofocus>
+    <button>Entrar</button>
+    <p class="error" id="error-ingreso" role="alert"></p>
+    <p class="nota">La clave aparece en la consola donde corriste <code>python portal/servidor.py</code>.
+      Para fijarla: <code>$env:ADMIN_CLAVE="..."</code></p>
+  </form>
+</div>
+
+<!-- panel -->
+<div id="panel" hidden>
+  <nav class="barra">
+    <b>Analizador de CVs</b>
+    <div class="pestanas" role="tablist">
+      <button role="tab" id="tab-post" aria-selected="true">Postulaciones <span id="tab-cuenta"></span></button>
+      <button role="tab" id="tab-lab" aria-selected="false">Laboratorio</button>
+    </div>
+    <div class="der">
+      <span id="ia"></span>
+      <a href="/" target="_blank">Ver página pública</a>
+      <button class="salir" id="salir">Salir</button>
+    </div>
+  </nav>
+
+  <!-- postulaciones -->
+  <div class="vista" id="vista-post">
+    <section class="caja">
+      <div class="cinta">
+        <div class="tramo">
+          <h3 id="t-espera">En la fila</h3>
+          <div class="espera" id="espera"></div>
+        </div>
+        <div class="flecha" aria-hidden="true">›</div>
+        <div class="tramo">
+          <h3 id="t-mesas">Analistas</h3>
+          <div class="mesas" id="mesas"></div>
+        </div>
+        <div class="flecha" aria-hidden="true">›</div>
+        <div class="tramo listas">
+          <h3>Analizadas</h3>
+          <b id="n-listas">0</b>
+          <span id="n-cumplen"></span>
+        </div>
+      </div>
+      <div class="acciones">
+        <div class="grupo">
+          <label for="cantidad">Postulaciones de prueba</label>
+          <input type="number" id="cantidad" min="1" max="50" value="10">
+          <button class="sec" id="simular">Agregar a la fila</button>
+        </div>
+        <span class="nota" id="nota-cinta"></span>
+        <div class="enlace-red" id="enlace-red" hidden>Postularse desde el celular: <b id="url-red"></b></div>
+      </div>
+    </section>
+
+    <div class="grilla">
+      <section class="caja">
+        <div class="cabeza">
+          <h2>Ranking</h2>
+          <label><input type="checkbox" id="solo-cumplen"> Solo las que cumplen excluyentes</label>
+        </div>
+        <table>
+          <thead><tr><th class="num">#</th><th>Nombre</th><th>Estado</th><th>Puntaje</th><th>Excluyentes</th><th>Tecnologías</th><th class="num">IA (s)</th></tr></thead>
+          <tbody id="tabla"></tbody>
+        </table>
+        <p class="vacio" id="vacio">Todavía no llegó ninguna postulación. Compartí la página pública o agregá postulaciones de prueba.</p>
+      </section>
+
+      <aside class="caja detalle" id="detalle">
+        <p class="vacio" style="padding:0">Elegí una postulación para ver qué extrajo la IA y el texto del PDF.</p>
+      </aside>
+    </div>
+  </div>
+
+  <!-- laboratorio: es gui/index.html, servido por el mismo servidor -->
+  <div class="vista" id="vista-lab" hidden></div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const fmt = (n, d = 1) => Number(n).toLocaleString("es-AR", { minimumFractionDigits: d, maximumFractionDigits: d });
+const st = { filas: [], cola: [], analistas: [], promedio: null, desfase: 0, elegido: null, info: {} };
+
+async function api(url, datos) {
+  const r = await fetch(url, datos === undefined ? {} :
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(datos) });
+  if (r.status === 401) { mostrarIngreso(); throw new Error("sin sesión"); }
+  return r.json();
+}
+
+// ---------- sesión ----------
+async function arrancar() {
+  const s = await (await fetch("/api/admin/sesion")).json();
+  s.ok ? mostrarPanel() : mostrarIngreso();
+}
+function mostrarIngreso() { $("panel").hidden = true; $("ingreso").hidden = false; $("clave").focus(); }
+
+$("form-ingreso").onsubmit = async (e) => {
+  e.preventDefault();
+  const r = await fetch("/api/admin/entrar", { method: "POST", headers: { "Content-Type": "application/json" },
+                                               body: JSON.stringify({ clave: $("clave").value }) });
+  if (r.ok) { $("clave").value = ""; $("error-ingreso").textContent = ""; mostrarPanel(); }
+  else $("error-ingreso").textContent = (await r.json()).error;
+};
+$("salir").onclick = async () => { await api("/api/admin/salir", {}); location.reload(); };
+
+let fuente = null;
+async function mostrarPanel() {
+  $("ingreso").hidden = true; $("panel").hidden = false;
+  st.info = await api("/api/admin/info");
+  $("ia").textContent = st.info.simulada ? "IA simulada" : st.info.ia_disponible ? `Modelo ${st.info.modelo}` : `Ollama no responde`;
+  if (st.info.url_red) { $("enlace-red").hidden = false; $("url-red").textContent = st.info.url_red.replace("http://", ""); }
+  await cargar();
+  if (!fuente) {
+    fuente = new EventSource("/api/eventos");  // mismo canal que usa el laboratorio
+    fuente.onmessage = (m) => {
+      const ev = JSON.parse(m.data);
+      if (ev.tipo === "postulacion" || ev.tipo === "repuntuado") pedirRecarga();
+    };
+  }
+  elegirPestana(location.hash === "#lab" ? "lab" : "post");
+}
+
+let pendiente = null;
+function pedirRecarga() { if (!pendiente) pendiente = setTimeout(() => { pendiente = null; cargar(); }, 120); }
+
+async function cargar() {
+  const d = await api("/api/admin/postulaciones");
+  Object.assign(st, { filas: d.filas, cola: d.cola, analistas: d.analistas, promedio: d.segundos_por_cv,
+                      desfase: Date.now() / 1000 - d.ahora });
+  pintarCinta(); pintarTabla(); pintarDetalle();
+}
+
+// ---------- pestañas ----------
+function elegirPestana(cual) {
+  $("tab-post").setAttribute("aria-selected", cual === "post");
+  $("tab-lab").setAttribute("aria-selected", cual === "lab");
+  $("vista-post").hidden = cual !== "post";
+  $("vista-lab").hidden = cual !== "lab";
+  if (cual === "lab" && !$("vista-lab").firstChild) {
+    const marco = document.createElement("iframe");
+    marco.src = "/admin/lab"; marco.title = "Laboratorio de concurrencia";
+    $("vista-lab").append(marco);
+  }
+  history.replaceState(null, "", cual === "lab" ? "#lab" : location.pathname);
+}
+$("tab-post").onclick = () => elegirPestana("post");
+$("tab-lab").onclick = () => elegirPestana("lab");
+
+// ---------- la fila (productor / consumidor) ----------
+const iniciales = (n) => (n || "?").split(/\s+/).slice(0, 2).map(p => p[0] || "").join("").toUpperCase();
+const porId = (id) => st.filas.find(f => f.id === id);
+
+function pintarCinta() {
+  const espera = $("espera"); espera.innerHTML = "";
+  // el próximo en salir queda pegado a los analistas (a la derecha)
+  st.cola.slice(0, 14).forEach(id => {
+    const f = porId(id); const h = document.createElement("div");
+    h.className = "hoja" + (f && f.origen !== "formulario" ? " prueba" : "");
+    h.textContent = iniciales(f && f.nombre); h.title = f ? f.nombre : id;
+    espera.append(h);
+  });
+  if (st.cola.length > 14) { const m = document.createElement("span"); m.className = "mas"; m.textContent = `+${st.cola.length - 14}`; espera.append(m); }
+  espera.classList.toggle("vacia", !st.cola.length);
+  if (!st.cola.length) espera.innerHTML = `<span class="nota">Nadie esperando</span>`;
+  $("t-espera").textContent = `En la fila (${st.cola.length})`;
+  $("t-mesas").textContent = `Analistas (${st.analistas.length} hilos)`;
+
+  const mesas = $("mesas"); mesas.innerHTML = "";
+  st.analistas.forEach(nombre => {
+    const f = st.filas.find(x => x.estado === "analizando" && x.worker === nombre);
+    const fila = document.createElement("div"); fila.className = "mesa";
+    fila.innerHTML = `<span class="quien"></span><div class="pista"><div class="avance"></div><span></span></div>`;
+    fila.querySelector(".quien").textContent = nombre;
+    const txt = fila.querySelector(".pista span");
+    if (f) { txt.textContent = f.nombre; fila.dataset.inicio = f.inicio; }
+    else { txt.textContent = "libre"; txt.className = "libre"; }
+    mesas.append(fila);
+  });
+  avanzarMesas();
+
+  const listas = st.filas.filter(f => f.estado === "lista");
+  $("n-listas").textContent = listas.length;
+  $("n-cumplen").textContent = listas.length ? `${listas.filter(f => f.cumple_excluyentes).length} cumplen excluyentes` : "";
+  $("nota-cinta").textContent = (st.promedio ? `Cada CV tarda ${fmt(st.promedio)} s en promedio con la IA. ` : "") +
+    (st.filas.some(f => f.origen !== "formulario") ? "Las hojas punteadas son de prueba." : "");
+  $("tab-cuenta").textContent = st.filas.length ? `(${st.filas.length})` : "";
+}
+
+function avanzarMesas() {
+  const ahora = Date.now() / 1000 - st.desfase;
+  document.querySelectorAll(".mesa[data-inicio]").forEach(m => {
+    const t = ahora - parseFloat(m.dataset.inicio);
+    const total = st.promedio || 3;
+    m.querySelector(".avance").style.width = Math.min(100, t / total * 100) + "%";
+    m.querySelector(".quien").textContent = m.querySelector(".quien").textContent.split(" ")[0] + `  ${fmt(t)} s`;
+  });
+}
+setInterval(avanzarMesas, 200);
+
+$("simular").onclick = async () => {
+  $("simular").disabled = true;
+  try { await api("/api/admin/simular", { cantidad: +$("cantidad").value || 10 }); }
+  finally { $("simular").disabled = false; }
+};
+
+// ---------- ranking ----------
+const ORDEN = { "analizando": 0, "en cola": 1, "error": 2, "lista": 3 };
+function pintarTabla() {
+  let filas = [...st.filas].sort((a, b) =>
+    a.estado === "lista" && b.estado === "lista" ? b.puntaje - a.puntaje || a.orden - b.orden
+    : ORDEN[a.estado] - ORDEN[b.estado] || a.orden - b.orden);
+  if ($("solo-cumplen").checked) filas = filas.filter(f => f.cumple_excluyentes);
+  const tb = $("tabla"); tb.innerHTML = "";
+  $("vacio").hidden = st.filas.length > 0;
+  let puesto = 0;
+  filas.forEach(f => {
+    const tr = document.createElement("tr");
+    if (f.id === st.elegido) tr.className = "elegida";
+    tr.onclick = () => { st.elegido = f.id; pintarTabla(); pintarDetalle(true); };
+    const td = (txt, clase) => { const c = document.createElement("td"); c.textContent = txt ?? ""; if (clase) c.className = clase; tr.append(c); return c; };
+    td(f.estado === "lista" ? ++puesto : "", "num");
+    const nom = td(f.nombre);
+    if (f.origen !== "formulario") { const s = document.createElement("div"); s.className = "sub"; s.textContent = f.origen; nom.append(s); }
+    td(f.estado, "estado " + f.estado.replace(" ", "-"));
+    const tp = document.createElement("td");
+    if (f.estado === "lista") {
+      tp.innerHTML = `<div class="puntaje"><span></span><i></i></div>`;
+      tp.querySelector("span").textContent = f.puntaje;
+      tp.querySelector("i").style.width = f.puntaje + "px";
+    }
+    tr.append(tp);
+    if (f.estado === "lista") td(f.cumple_excluyentes ? "Sí" : "No", f.cumple_excluyentes ? "" : "no"); else td("");
+    td(f.extraido ? (f.extraido.tecnologias || []).join(", ") : "", "tecs");
+    td(f.duracion != null ? fmt(f.duracion) : "", "num");
+    tb.append(tr);
+  });
+}
+$("solo-cumplen").onchange = pintarTabla;
+
+// ---------- detalle ----------
+let textoCargado = null;
+async function pintarDetalle(nuevo = false) {
+  const f = porId(st.elegido); const caja = $("detalle");
+  if (!f) { caja.innerHTML = `<p class="vacio" style="padding:0">Elegí una postulación para ver qué extrajo la IA y el texto del PDF.</p>`; return; }
+  const abiertos = [...caja.querySelectorAll("details")].map(d => d.open);
+  caja.innerHTML = `
+    <h2></h2><div class="sub" id="d-sub"></div>
+    <div class="botones">
+      <button class="sec" id="d-pdf">Ver PDF</button>
+      <button class="sec" id="d-otra">Volver a analizar</button>
+      <button class="peligro" id="d-borrar">Borrar</button>
+    </div>
+    <div id="d-cuerpo"></div>
+    <details><summary>Texto del PDF</summary><pre id="d-texto">cargando…</pre></details>
+    <details><summary>Respuesta del modelo</summary><pre id="d-crudo"></pre></details>`;
+  caja.querySelector("h2").textContent = f.nombre;
+  $("d-sub").textContent = `${f.email} | recibida ${f.recibida.replace("T", " ")} | ${f.origen}`;
+  $("d-pdf").onclick = () => window.open("/api/admin/pdf?id=" + encodeURIComponent(f.id), "_blank");
+  $("d-otra").disabled = f.estado === "en cola" || f.estado === "analizando";
+  $("d-otra").onclick = () => api("/api/admin/reanalizar", { id: f.id });
+  $("d-borrar").onclick = async () => {
+    if (!confirm(`¿Borrar la postulación de ${f.nombre}? Se borra también el PDF.`)) return;
+    await api("/api/admin/borrar", { id: f.id }); st.elegido = null;
+  };
+
+  const cuerpo = $("d-cuerpo");
+  if (f.estado === "lista") {
+    const x = f.extraido;
+    cuerpo.innerHTML = `<div class="grande"></div><p id="d-motivo" style="margin:6px 0 14px"></p><dl></dl>`;
+    cuerpo.querySelector(".grande").textContent = `${f.puntaje} puntos`;
+    $("d-motivo").textContent = f.motivo;
+    const dl = cuerpo.querySelector("dl");
+    [["Nombre en el CV", x.nombre], ["Experiencia", `${x.anios_experiencia} años`],
+     ["Tecnologías", (x.tecnologias || []).join(", ")], ["Inglés", x.nivel_ingles], ["Resumen", x.resumen],
+     ["Analizó", `${f.worker} en ${fmt(f.duracion)} s`]].forEach(([k, v]) => {
+      const dt = document.createElement("dt"); dt.textContent = k;
+      const dd = document.createElement("dd"); dd.textContent = v ?? "-"; dl.append(dt, dd); });
+  } else if (f.estado === "error") {
+    cuerpo.innerHTML = `<p class="no"></p>`; cuerpo.querySelector("p").textContent = f.error;
+  } else {
+    cuerpo.innerHTML = `<p class="nota"></p>`;
+    cuerpo.querySelector("p").textContent = f.estado === "en cola"
+      ? `Esperando. Tiene ${st.cola.indexOf(f.id)} postulaciones adelante.` : `La está leyendo ${f.worker}.`;
+  }
+  let crudo = f.crudo || "(todavía no hay respuesta)";
+  try { crudo = JSON.stringify(JSON.parse(crudo), null, 2); } catch (_) {}
+  $("d-crudo").textContent = crudo;
+  caja.querySelectorAll("details").forEach((d, i) => d.open = !nuevo && abiertos[i]);
+
+  if (textoCargado?.id !== f.id) {
+    const r = await api("/api/admin/texto?id=" + encodeURIComponent(f.id));
+    textoCargado = { id: f.id, texto: r.texto };
+  }
+  if ($("d-texto") && st.elegido === f.id) $("d-texto").textContent = textoCargado.texto;
+}
+
+arrancar();
+</script>
+</body>
+</html>

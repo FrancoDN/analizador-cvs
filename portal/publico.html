@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Postulate: Backend Python Junior</title>
+<style>
+  /* Misma paleta que el laboratorio (gui/index.html), así todo se ve como un solo producto */
+  :root {
+    --papel: #F5F3EE;
+    --hoja: #FBFAF7;
+    --linea: #DDD8CC;
+    --tinta: #1E2228;
+    --gris: #5A6270;
+    --azul: #2F6FB0;
+    --azul-claro: #B9D0E8;
+    --oxido: #B04A17;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--papel); color: var(--tinta);
+         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  a { color: var(--azul); }
+  :focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+
+  .marca { display: flex; justify-content: space-between; align-items: center;
+           max-width: 1080px; margin: 0 auto; padding: 18px 24px; font-size: 15px; color: var(--gris); }
+  .marca b { color: var(--tinta); font-weight: 600; }
+  .marca a { color: var(--gris); text-decoration: none; }
+  .marca a:hover { color: var(--tinta); text-decoration: underline; }
+
+  [hidden] { display: none !important; }
+  main { max-width: 1080px; margin: 0 auto; padding: 24px 24px 64px;
+         display: grid; grid-template-columns: 1fr 420px; column-gap: 56px; align-items: start;
+         grid-template-areas: "intro tarjeta" "detalles tarjeta"; grid-template-rows: auto 1fr; }
+  .intro { grid-area: intro; }
+  .detalles { grid-area: detalles; }
+  .tarjeta { grid-area: tarjeta; }
+
+  h1 { font-size: clamp(38px, 6vw, 64px); line-height: 1.02; letter-spacing: -0.03em;
+       font-weight: 700; margin: 0 0 20px; max-width: 12ch; }
+  .bajada { font-size: 19px; color: var(--gris); max-width: 46ch; margin: 0 0 40px; }
+
+  h2 { font-size: 17px; font-weight: 600; margin: 0 0 12px; }
+  .bloque { margin-bottom: 36px; max-width: 52ch; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; padding: 0; list-style: none; }
+  .chips li { padding: 4px 12px; border-radius: 999px; font-size: 15px; border: 1.5px solid var(--tinta); }
+  .chips.obligatorias li { background: var(--tinta); color: var(--hoja); }
+  .leyenda { font-size: 14px; color: var(--gris); margin: 0 0 18px; }
+
+  .reglas { margin: 0; padding: 0; list-style: none; font-size: 15px; }
+  .reglas li { display: grid; grid-template-columns: 1fr auto; gap: 16px; padding: 7px 0;
+               border-bottom: 1px solid var(--linea); }
+  .reglas li span:last-child { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .privado { font-size: 15px; color: var(--gris); }
+
+  /* ---------- tarjeta del formulario / seguimiento ---------- */
+  .tarjeta { background: var(--hoja); border: 1px solid var(--linea); border-radius: 14px;
+             padding: 28px; position: sticky; top: 24px; }
+  label { display: block; font-size: 15px; font-weight: 600; margin: 0 0 6px; }
+  input[type=text], input[type=email] { width: 100%; padding: 10px 12px; font: inherit;
+         border: 1px solid var(--linea); border-radius: 8px; background: #fff; color: var(--tinta); margin-bottom: 18px; }
+  .soltar { display: block; border: 2px dashed var(--linea); border-radius: 10px; padding: 22px 16px;
+            text-align: center; cursor: pointer; background: #fff; margin-bottom: 6px; transition: border-color .15s, background .15s; }
+  .soltar:hover, .soltar.encima { border-color: var(--azul); background: #F3F7FC; }
+  .soltar.lleno { border-style: solid; border-color: var(--azul); }
+  .soltar strong { display: block; font-size: 16px; }
+  .soltar span { font-size: 14px; color: var(--gris); }
+  .soltar input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .ayuda { font-size: 14px; color: var(--gris); margin: 0 0 18px; }
+  .acepto { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; font-size: 15px; margin: 0 0 20px; }
+  .acepto input { margin-top: 4px; }
+  button { font: inherit; font-weight: 600; width: 100%; padding: 12px 18px; border-radius: 8px;
+           border: 0; background: var(--tinta); color: var(--hoja); cursor: pointer; }
+  button:disabled { opacity: .45; cursor: default; }
+  button.texto { width: auto; background: none; color: var(--azul); padding: 0; font-weight: 400; text-decoration: underline; }
+  .error { color: var(--oxido); font-size: 15px; min-height: 22px; margin: 12px 0 0; }
+
+  /* ---------- seguimiento ---------- */
+  .estado { font-size: 26px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; margin: 0 0 8px; }
+  .detalle { color: var(--gris); margin: 0 0 22px; }
+  .fila { display: flex; align-items: flex-end; gap: 14px; margin: 0 0 22px; }
+  .grupo { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--gris); }
+  .hojas { display: flex; align-items: flex-end; gap: 6px; height: 52px; }
+  .hoja { flex: none; width: 26px; height: 34px; border-radius: 3px; background: #fff;
+          border: 1.5px solid var(--linea); position: relative; }
+  .hoja::after { content: ""; position: absolute; left: 5px; right: 5px; top: 8px; height: 10px;
+                 border-top: 2px solid var(--linea); border-bottom: 2px solid var(--linea); }
+  .hoja.tuya { width: 36px; height: 48px; border-color: var(--azul); background: var(--azul); }
+  .hoja.tuya::after { border-color: var(--azul-claro); }
+  .hoja.leyendo { animation: leyendo 1.2s ease-in-out infinite alternate; }
+  @keyframes leyendo { to { transform: translateY(-6px); } }
+  .mesa { padding-left: 14px; border-left: 2px solid var(--tinta); }
+  .hoja.libre { border-style: dashed; background: transparent; }
+  .hoja.libre::after { display: none; }
+  .hoja.ocupada { background: var(--linea); }
+  .resultado { border-top: 1px solid var(--linea); padding-top: 18px; }
+  .resultado dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; margin: 0 0 18px; font-size: 15px; }
+  .resultado dt { color: var(--gris); }
+  .resultado dd { margin: 0; }
+  .checks { list-style: none; padding: 0; margin: 0 0 16px; display: flex; flex-wrap: wrap; gap: 8px 16px; }
+  .checks li::before { content: "✓ "; color: var(--azul); font-weight: 700; }
+  .checks li.falta { color: var(--oxido); }
+  .checks li.falta::before { content: "✗ "; color: var(--oxido); }
+  .consejo { font-size: 14px; color: var(--gris); margin: 0 0 18px; }
+
+  @media (max-width: 880px) {
+    main { grid-template-columns: 1fr; grid-template-areas: "intro" "tarjeta" "detalles"; padding-top: 8px; }
+    .tarjeta { position: static; padding: 22px; margin-bottom: 40px; }
+    .bajada { margin-bottom: 28px; }
+    .marca .extra { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .hoja.leyendo { animation: none; } }
+</style>
+</head>
+<body>
+
+<div class="marca">
+  <span><b>Analizador de CVs</b><span class="extra"> &nbsp;Búsquedas abiertas</span></span>
+  <a href="/admin">Soy de RRHH</a>
+</div>
+
+<main>
+  <div class="intro">
+    <h1 id="puesto">Desarrollador/a Backend Python Junior</h1>
+    <p class="bajada">Subí tu CV en PDF. Un modelo de lenguaje lo lee en esta misma computadora
+      y en unos segundos sabés qué entendió de vos.</p>
+  </div>
+
+  <div class="detalles">
+    <div class="bloque">
+      <h2>Lo que buscamos</h2>
+      <ul class="chips obligatorias" id="excluyentes"></ul>
+      <p class="leyenda">Excluyentes: si falta alguna, el CV queda abajo en el ranking.</p>
+      <ul class="chips" id="deseables"></ul>
+      <p class="leyenda">Suman puntos, pero no son obligatorias.</p>
+    </div>
+
+    <div class="bloque">
+      <h2>Cómo se arma el puntaje</h2>
+      <ul class="reglas">
+        <li><span>Tenés todas las excluyentes</span><span>50</span></li>
+        <li><span>Te falta alguna excluyente</span><span>10</span></li>
+        <li><span>Cada tecnología deseable</span><span>+7</span></li>
+        <li><span>Cada año de experiencia, hasta 4</span><span>+3</span></li>
+        <li><span>Inglés intermedio o avanzado</span><span>+3 o +5</span></li>
+      </ul>
+      <p class="leyenda" style="margin-top:10px">Máximo 100. La IA solo extrae tus datos; el puntaje sale de estas reglas.</p>
+    </div>
+
+    <div class="bloque">
+      <h2>Tus datos</h2>
+      <p class="privado">El modelo corre en esta computadora: tu CV no se manda a ningún servicio externo.
+        Solo lo ve el equipo de RRHH de esta búsqueda.</p>
+    </div>
+  </div>
+
+  <div class="tarjeta" id="tarjeta">
+    <!-- formulario -->
+    <form id="formulario" novalidate>
+      <label for="nombre">Nombre y apellido</label>
+      <input type="text" id="nombre" autocomplete="name" required maxlength="80">
+      <label for="email">Email</label>
+      <input type="email" id="email" autocomplete="email" required maxlength="120">
+      <label for="archivo">CV</label>
+      <label class="soltar" id="soltar">
+        <input type="file" id="archivo" accept="application/pdf,.pdf">
+        <strong id="archivo-nombre">Elegí tu PDF o arrastralo acá</strong>
+        <span id="archivo-detalle">Hasta 5 MB</span>
+      </label>
+      <p class="ayuda">¿No tenés uno a mano? <a href="/cv-de-prueba.pdf">Bajá un CV de prueba</a>.</p>
+      <label class="acepto"><input type="checkbox" id="acepto">
+        <span>Acepto que se analice mi CV para esta búsqueda.</span></label>
+      <button type="submit" id="enviar">Enviar postulación</button>
+      <p class="error" id="error" role="alert"></p>
+    </form>
+
+    <!-- seguimiento -->
+    <div id="seguimiento" hidden aria-live="polite">
+      <p class="estado" id="s-estado"></p>
+      <p class="detalle" id="s-detalle"></p>
+      <div class="fila" id="s-fila-caja"></div>
+      <div class="resultado" id="s-resultado" hidden>
+        <h2>Esto es lo que entendió la IA</h2>
+        <dl id="s-datos"></dl>
+        <h2>Excluyentes</h2>
+        <ul class="checks" id="s-checks"></ul>
+        <p class="consejo" id="s-consejo"></p>
+      </div>
+      <button class="texto" id="otra">Enviar otro CV</button>
+    </div>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let pdf = null, seguimiento = null, maxMb = 5, analistas = 2;
+
+// ---------- datos del puesto ----------
+fetch("/api/puesto").then(r => r.json()).then(p => {
+  $("puesto").textContent = p.puesto;
+  document.title = "Postulate: " + p.puesto;
+  maxMb = p.max_mb; analistas = p.analistas;
+  $("archivo-detalle").textContent = `Hasta ${maxMb} MB`;
+  const chips = (ul, lista) => { ul.innerHTML = ""; lista.forEach(t => { const li = document.createElement("li"); li.textContent = t; ul.append(li); }); };
+  chips($("excluyentes"), p.excluyentes);
+  chips($("deseables"), p.deseables);
+});
+
+// ---------- archivo ----------
+function elegir(archivo) {
+  $("error").textContent = "";
+  if (!archivo) return;
+  if (archivo.type !== "application/pdf" && !archivo.name.toLowerCase().endsWith(".pdf")) {
+    $("error").textContent = "El archivo tiene que ser un PDF."; return;
+  }
+  if (archivo.size > maxMb * 1024 * 1024) {
+    $("error").textContent = `El PDF pesa más de ${maxMb} MB.`; return;
+  }
+  pdf = archivo;
+  $("soltar").classList.add("lleno");
+  $("archivo-nombre").textContent = archivo.name;
+  $("archivo-detalle").textContent = `${(archivo.size / 1024).toFixed(0)} KB. Tocá para cambiarlo.`;
+}
+$("archivo").onchange = (e) => elegir(e.target.files[0]);
+const zona = $("soltar");
+zona.ondragover = (e) => { e.preventDefault(); zona.classList.add("encima"); };
+zona.ondragleave = () => zona.classList.remove("encima");
+zona.ondrop = (e) => { e.preventDefault(); zona.classList.remove("encima"); elegir(e.dataTransfer.files[0]); };
+
+// ---------- envío ----------
+$("formulario").onsubmit = async (e) => {
+  e.preventDefault();
+  const nombre = $("nombre").value.trim(), email = $("email").value.trim();
+  if (!nombre) return mostrarError("Escribí tu nombre y apellido.", "nombre");
+  if (!/^\S+@\S+\.\S+$/.test(email)) return mostrarError("Revisá el email: falta la @ o el dominio.", "email");
+  if (!pdf) return mostrarError("Adjuntá tu CV en PDF.");
+  if (!$("acepto").checked) return mostrarError("Para enviarlo, aceptá que se analice tu CV.", "acepto");
+
+  $("enviar").disabled = true; $("enviar").textContent = "Enviando…";
+  try {
+    // El PDF viaja tal cual en el cuerpo; nombre y email en la URL
+    const url = `/api/postular?nombre=${encodeURIComponent(nombre)}&email=${encodeURIComponent(email)}`;
+    const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/pdf" }, body: pdf });
+    const datos = await r.json();
+    if (!r.ok) throw new Error(datos.error || "No se pudo enviar.");
+    location.hash = "p=" + datos.id;
+    seguir(datos.id, datos);
+  } catch (err) {
+    mostrarError(err.message === "Failed to fetch" ? "No hay conexión con el servidor. Probá de nuevo." : err.message);
+  } finally {
+    $("enviar").disabled = false; $("enviar").textContent = "Enviar postulación";
+  }
+};
+function mostrarError(msg, foco) { $("error").textContent = msg; if (foco) $(foco).focus(); }
+
+// ---------- seguimiento ----------
+function seguir(id, primeros) {
+  seguimiento = id;
+  $("formulario").hidden = true; $("seguimiento").hidden = false;
+  primeros ? pintar(primeros) : consultar();
+}
+
+async function consultar() {
+  if (!seguimiento) return;
+  const r = await fetch("/api/postulacion?id=" + encodeURIComponent(seguimiento)).catch(() => null);
+  if (!r) return setTimeout(consultar, 2000);
+  if (r.status === 404) { volverAlFormulario(); return; }
+  pintar(await r.json());
+}
+
+function pintar(d) {
+  const espera = d.segundos_por_cv || 0;
+  $("s-resultado").hidden = true;
+  $("s-fila-caja").hidden = false;
+  if (d.estado === "en cola") {
+    $("s-estado").textContent = d.delante === 0 ? "Sos el próximo en la fila" : "Tu CV está en la fila";
+    const cuanto = espera ? ` Faltan unos ${Math.max(1, Math.round((d.delante / d.analistas + 1) * espera))} segundos.` : "";
+    $("s-detalle").textContent = (d.delante === 0 ? "Apenas se libere un analista, lo lee."
+      : `Hay ${d.delante} ${d.delante === 1 ? "CV" : "CVs"} antes que el tuyo y se leen de a ${d.analistas}.`) + cuanto;
+    dibujarFila(d.delante, false, d.analizando);
+  } else if (d.estado === "analizando") {
+    $("s-estado").textContent = "Estamos leyendo tu CV";
+    $("s-detalle").textContent = `Empezó hace ${Math.round(d.hace)} s.` + (espera ? ` Suele tardar unos ${Math.round(espera)} s.` : "");
+    dibujarFila(0, true, d.analizando);
+  } else if (d.estado === "lista") {
+    $("s-estado").textContent = "Listo, tu CV ya está en RRHH";
+    $("s-detalle").textContent = `Gracias, ${d.nombre.split(" ")[0]}. Si te seleccionan, te escriben al email que dejaste.`;
+    $("s-fila-caja").hidden = true;
+    mostrarResultado(d);
+  } else {
+    $("s-estado").textContent = "No pudimos leer tu CV";
+    $("s-detalle").textContent = "Hubo un problema al analizarlo. Probá enviarlo de nuevo en unos minutos.";
+    $("s-fila-caja").hidden = true;
+  }
+  if (d.estado === "en cola" || d.estado === "analizando") setTimeout(consultar, 1000);
+}
+
+// La fila de espera a la izquierda (la tuya en azul) y los analistas a la derecha
+function dibujarFila(delante, leyendo, ocupados) {
+  const fila = $("s-fila-caja"); fila.innerHTML = "";
+  const hoja = (clase) => { const h = document.createElement("div"); h.className = "hoja " + clase; return h; };
+  const grupo = (clase, texto) => {
+    const g = document.createElement("div"); g.className = "grupo " + clase;
+    const hs = document.createElement("div"); hs.className = "hojas";
+    const t = document.createElement("span"); t.textContent = texto;
+    g.append(hs, t); fila.append(g); return hs;
+  };
+  if (!leyendo) {
+    const espera = grupo("", delante > 9 ? `en espera (+${delante - 9} más)` : "en espera");
+    espera.append(hoja("tuya"));
+    for (let i = 0; i < Math.min(delante, 9); i++) espera.append(hoja(""));
+  }
+  const mesa = grupo("mesa", "leyendo");
+  const otros = Math.max(0, (ocupados || 0) - (leyendo ? 1 : 0));
+  if (leyendo) mesa.append(hoja("tuya leyendo"));
+  for (let i = 0; i < analistas - (leyendo ? 1 : 0); i++) mesa.append(hoja(i < otros ? "ocupada" : "libre"));
+}
+
+function mostrarResultado(d) {
+  const x = d.extraido || {};
+  const datos = [["Nombre", x.nombre], ["Experiencia", `${x.anios_experiencia ?? 0} ${x.anios_experiencia === 1 ? "año" : "años"}`],
+                 ["Tecnologías", (x.tecnologias || []).join(", ") || "ninguna"], ["Inglés", x.nivel_ingles], ["Resumen", x.resumen]];
+  const dl = $("s-datos"); dl.innerHTML = "";
+  datos.forEach(([k, v]) => { const dt = document.createElement("dt"); dt.textContent = k;
+                              const dd = document.createElement("dd"); dd.textContent = v || "-"; dl.append(dt, dd); });
+  const ul = $("s-checks"); ul.innerHTML = "";
+  (d.excluyentes || []).forEach(e => { const li = document.createElement("li"); li.textContent = e.nombre;
+                                       if (!e.esta) li.className = "falta"; ul.append(li); });
+  const faltan = (d.excluyentes || []).filter(e => !e.esta).map(e => e.nombre);
+  $("s-consejo").textContent = faltan.length
+    ? `Si sabés ${faltan.join(" y ")}, escribilo tal cual en la sección de tecnologías de tu CV y volvé a enviarlo.`
+    : "Encontramos todas las excluyentes.";
+  $("s-resultado").hidden = false;
+}
+
+function volverAlFormulario() {
+  seguimiento = null; history.replaceState(null, "", location.pathname);
+  $("seguimiento").hidden = true; $("formulario").hidden = false;
+}
+$("otra").onclick = () => { volverAlFormulario(); $("formulario").reset(); pdf = null;
+  $("soltar").classList.remove("lleno"); $("archivo-nombre").textContent = "Elegí tu PDF o arrastralo acá";
+  $("archivo-detalle").textContent = `Hasta ${maxMb} MB`; };
+
+// si recarga la página, sigue mostrando su postulación
+const previo = location.hash.match(/p=([\w-]+)/);
+if (previo) seguir(previo[1]);
+</script>
+</body>
+</html>

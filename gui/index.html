@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Analizador de CVs</title>
+<style>
+  :root {
+    --fondo: #F5F3EE;
+    --panel: #FBFAF7;
+    --borde: #DDD8CC;
+    --texto: #1E2228;
+    --suave: #5A6270;
+    --azul: #2F6FB0;
+    --azul-claro: #B9D0E8;
+    --naranja: #B04A17;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fondo); color: var(--texto);
+         font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; justify-content: space-between; align-items: baseline;
+           padding: 16px 24px; border-bottom: 1px solid var(--borde); background: var(--panel); }
+  header h1 { margin: 0; font-size: 20px; font-weight: 600; }
+  header .puesto { color: var(--suave); margin-left: 12px; }
+  #estado-ia { color: var(--suave); font-size: 14px; }
+  .app { display: grid; grid-template-columns: 320px 1fr; gap: 20px; padding: 20px 24px; align-items: start; }
+  aside, section.caja { background: var(--panel); border: 1px solid var(--borde); border-radius: 8px; }
+  aside { padding: 16px; display: flex; flex-direction: column; gap: 22px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--suave);
+       margin: 0 0 10px; font-weight: 600; }
+  label { display: block; font-size: 14px; margin: 8px 0 4px; }
+  input[type=text], input[type=number], select, textarea {
+    width: 100%; padding: 6px 8px; border: 1px solid var(--borde); border-radius: 6px;
+    background: #fff; font: inherit; color: var(--texto); }
+  textarea { resize: vertical; min-height: 60px; }
+  .fila { display: flex; gap: 8px; align-items: center; }
+  .fila label { margin: 0; display: flex; gap: 6px; align-items: center; }
+  input[type=range] { width: 100%; }
+  button { font: inherit; padding: 7px 14px; border-radius: 6px; border: 1px solid var(--texto);
+           background: var(--texto); color: #fff; cursor: pointer; }
+  button.secundario { background: transparent; color: var(--texto); }
+  button:disabled { opacity: .4; cursor: default; }
+  .nota { font-size: 13px; color: var(--suave); margin: 8px 0 0; }
+  main { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+  section.caja { padding: 16px; }
+  .numeros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .numeros div { font-size: 13px; color: var(--suave); }
+  .numeros b { display: block; font-size: 22px; font-weight: 600; color: var(--texto); font-variant-numeric: tabular-nums; }
+  .progreso { height: 6px; background: #E8E4DA; border-radius: 3px; margin-top: 14px; overflow: hidden; }
+  .progreso div { height: 100%; width: 0; background: var(--azul); transition: width .2s; }
+  .carriles { display: flex; flex-direction: column; gap: 6px; }
+  .carril { display: grid; grid-template-columns: 70px 1fr; gap: 8px; align-items: center; font-size: 13px; color: var(--suave); }
+  .pista { position: relative; height: 22px; background: #EFECE5; border-radius: 4px; overflow: hidden; }
+  .barra { position: absolute; top: 2px; bottom: 2px; background: var(--azul); border-radius: 3px;
+           border-right: 1px solid var(--panel); cursor: pointer; }
+  .barra.corriendo { background: var(--azul-claro); }
+  .eje { display: flex; justify-content: space-between; font-size: 12px; color: var(--suave); margin: 4px 0 0 78px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; font-weight: 600; color: var(--suave); font-size: 13px; padding: 6px 8px; border-bottom: 1px solid var(--borde); }
+  td { padding: 6px 8px; border-bottom: 1px solid #ECE8DF; vertical-align: top; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: #F1EEE7; }
+  tbody tr.elegida { background: #E6EEF7; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .puntaje { display: flex; align-items: center; gap: 8px; }
+  .puntaje span { width: 28px; text-align: right; font-variant-numeric: tabular-nums; }
+  .puntaje i { display: block; height: 6px; background: var(--azul); border-radius: 3px; }
+  .no { color: var(--naranja); }
+  .tecs { color: var(--suave); font-size: 13px; }
+  .detalle { display: grid; grid-template-columns: 1fr 1fr 300px; gap: 16px; }
+  pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 13px/1.45 ui-monospace, Consolas, monospace;
+        background: #fff; border: 1px solid var(--borde); border-radius: 6px; padding: 10px; max-height: 420px; overflow: auto; }
+  .lista { list-style: none; margin: 0; padding: 0; font-size: 14px; }
+  .lista li { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; border-bottom: 1px solid #ECE8DF; }
+  .lista button { padding: 2px 8px; font-size: 12px; }
+  .vacio { color: var(--suave); font-size: 14px; }
+  #msg-ejemplo { font-size: 13px; color: var(--azul); min-height: 18px; margin-top: 6px; }
+  @media (max-width: 1100px) { .app { grid-template-columns: 1fr; }
+                               .detalle { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div><h1 style="display:inline">Analizador de CVs</h1><span class="puesto" id="puesto"></span></div>
+  <div id="estado-ia">conectando...</div>
+</header>
+
+<div class="app">
+  <aside>
+    <div>
+      <h2>Corrida</h2>
+      <div class="fila">
+        <label><input type="radio" name="modo" value="secuencial"> Secuencial</label>
+        <label><input type="radio" name="modo" value="hilos" checked> Hilos</label>
+      </div>
+      <label for="workers">Hilos: <b id="workers-valor">4</b></label>
+      <input type="range" id="workers" min="1" max="16" value="4">
+      <label for="limite">Cantidad de CVs</label>
+      <input type="number" id="limite" min="1" max="500" value="10">
+      <div class="fila" style="margin-top:12px">
+        <button id="iniciar">Iniciar</button>
+        <button id="detener" class="secundario" disabled>Detener</button>
+      </div>
+    </div>
+
+    <div>
+      <h2>Criterios del puesto</h2>
+      <label for="excluyentes">Excluyentes</label>
+      <input type="text" id="excluyentes">
+      <label for="deseables">Deseables</label>
+      <input type="text" id="deseables">
+      <div style="margin-top:10px"><button class="secundario" id="aplicar">Aplicar y volver a puntuar</button></div>
+      <p class="nota">Separados por coma. El puntaje lo calcula el programa, no la IA.</p>
+    </div>
+
+    <div>
+      <h2>Ejemplos para la IA</h2>
+      <ul class="lista" id="ejemplos"></ul>
+      <p class="nota" id="nota-ejemplos"></p>
+    </div>
+
+    <div>
+      <h2>Historial</h2>
+      <table>
+        <thead><tr><th>Modo</th><th class="num">Hilos</th><th class="num">CVs</th><th class="num">Seg</th><th class="num">CV/min</th></tr></thead>
+        <tbody id="historial"></tbody>
+      </table>
+    </div>
+  </aside>
+
+  <main>
+    <section class="caja">
+      <div class="numeros">
+        <div>Procesados<b id="n-hechos">0 / 0</b></div>
+        <div>Tiempo<b id="n-tiempo">0,0 s</b></div>
+        <div>CVs por minuto<b id="n-ritmo">-</b></div>
+        <div>Promedio por CV<b id="n-promedio">-</b></div>
+      </div>
+      <div class="progreso"><div id="barra-progreso"></div></div>
+    </section>
+
+    <section class="caja">
+      <h2>Actividad por hilo</h2>
+      <div class="carriles" id="carriles"><p class="vacio">Iniciá una corrida para ver qué hace cada hilo.</p></div>
+      <div class="eje"><span>0 s</span><span id="eje-fin"></span></div>
+    </section>
+
+    <section class="caja">
+      <h2>Ranking</h2>
+      <table>
+        <thead><tr><th class="num">#</th><th>Nombre</th><th>Puntaje</th><th>Excluyentes</th><th>Tecnologías</th><th class="num">IA (s)</th><th>Archivo</th></tr></thead>
+        <tbody id="tabla"></tbody>
+      </table>
+      <p class="vacio" id="tabla-vacia">Todavía no hay resultados.</p>
+    </section>
+
+    <section class="caja" id="panel-detalle" hidden>
+      <h2 id="detalle-titulo">Detalle</h2>
+      <div class="detalle">
+        <div>
+          <label>Texto extraído del PDF</label>
+          <pre id="detalle-texto"></pre>
+        </div>
+        <div>
+          <label>Respuesta del modelo</label>
+          <pre id="detalle-crudo"></pre>
+          <label>Puntaje calculado</label>
+          <pre id="detalle-puntaje"></pre>
+        </div>
+        <div>
+          <label>Corregir lo que extrajo la IA</label>
+          <label for="c-nombre">Nombre</label><input type="text" id="c-nombre">
+          <label for="c-anios">Años de experiencia</label><input type="number" id="c-anios" min="0">
+          <label for="c-tecs">Tecnologías</label><input type="text" id="c-tecs">
+          <label for="c-ingles">Inglés</label>
+          <select id="c-ingles"><option>basico</option><option>intermedio</option><option>avanzado</option><option>no dice</option></select>
+          <label for="c-resumen">Resumen</label><textarea id="c-resumen"></textarea>
+          <div style="margin-top:10px"><button id="guardar-ejemplo">Guardar como ejemplo</button></div>
+          <div id="msg-ejemplo"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const fmt = (n, d = 1) => n.toLocaleString("es-AR", { minimumFractionDigits: d, maximumFractionDigits: d });
+
+const app = {
+  total: 0, workers: 1, corriendo: false,
+  inicioLocal: 0, tFin: 0,
+  barras: {},       // archivo -> {carril, t0, t1}
+  resultados: {},   // archivo -> fila
+  elegido: null, maxEjemplos: 2, simulada: false,
+};
+
+// ---------- carga inicial ----------
+async function cargarEstado() {
+  const e = await (await fetch("/api/estado")).json();
+  $("puesto").textContent = e.puesto;
+  $("estado-ia").textContent = e.simulada ? "IA simulada"
+    : e.ia_disponible ? `Modelo ${e.modelo} · conectado` : `Ollama no responde (${e.modelo})`;
+  $("excluyentes").value = e.excluyentes.join(", ");
+  $("deseables").value = e.deseables.join(", ");
+  $("limite").value = e.limite;
+  $("limite").max = e.total_cvs;
+  $("workers").value = e.workers; $("workers-valor").textContent = e.workers;
+  app.maxEjemplos = e.max_ejemplos; app.simulada = e.simulada;
+  e.resultados.forEach(f => app.resultados[f.archivo] = f);
+  pintarEjemplos(e.ejemplos);
+  e.historial.forEach(agregarHistorial);
+  setCorriendo(e.en_curso);
+  pintarTabla();
+}
+
+// ---------- eventos en vivo ----------
+const fuente = new EventSource("/api/eventos");
+fuente.onmessage = (m) => {
+  const ev = JSON.parse(m.data);
+  if (ev.tipo === "inicio") {
+    Object.assign(app, { total: ev.total, workers: ev.workers, barras: {}, resultados: {}, tFin: 0,
+                         inicioLocal: performance.now() });
+    armarCarriles(); pintarTabla(); setCorriendo(true);
+  } else if (ev.tipo === "empieza") {
+    app.barras[ev.archivo] = { carril: numeroDeHilo(ev.worker), t0: ev.t, t1: null };
+  } else if (ev.tipo === "termina") {
+    const b = app.barras[ev.fila.archivo];
+    if (b) b.t1 = ev.t;
+    app.tFin = Math.max(app.tFin, ev.t);
+    app.resultados[ev.fila.archivo] = ev.fila;
+    pintarTabla();
+  } else if (ev.tipo === "fin") {
+    app.tFin = ev.segundos;
+    setCorriendo(false); agregarHistorial(ev); pintarTodo();
+  } else if (ev.tipo === "repuntuado") {
+    ev.filas.forEach(f => app.resultados[f.archivo] = f); pintarTabla(); refrescarDetalle();
+  } else if (ev.tipo === "actualiza") {
+    app.resultados[ev.fila.archivo] = ev.fila; pintarTabla(); refrescarDetalle();
+  }
+};
+fuente.onerror = () => { $("estado-ia").textContent = "Sin conexión con el servidor"; };
+
+const numeroDeHilo = (nombre) => parseInt((nombre.match(/(\d+)$/) || [0, 0])[1], 10);
+
+// ---------- controles ----------
+$("workers").oninput = () => $("workers-valor").textContent = $("workers").value;
+document.querySelectorAll("input[name=modo]").forEach(r => r.onchange = () =>
+  $("workers").disabled = valorModo() === "secuencial");
+const valorModo = () => document.querySelector("input[name=modo]:checked").value;
+
+$("iniciar").onclick = async () => {
+  const r = await post("/api/correr", { modo: valorModo(), workers: +$("workers").value, limite: +$("limite").value });
+  if (!r.ok) alert(r.error);
+};
+$("detener").onclick = () => post("/api/detener", {});
+$("aplicar").onclick = () => post("/api/criterios", {
+  excluyentes: $("excluyentes").value.split(","), deseables: $("deseables").value.split(",") });
+
+async function post(url, datos) {
+  const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(datos) });
+  return r.json();
+}
+
+function setCorriendo(si) {
+  app.corriendo = si;
+  $("iniciar").disabled = si; $("detener").disabled = !si;
+}
+
+// ---------- línea de tiempo ----------
+function armarCarriles() {
+  const cont = $("carriles"); cont.innerHTML = "";
+  for (let i = 0; i < app.workers; i++) {
+    const fila = document.createElement("div"); fila.className = "carril";
+    const nombre = document.createElement("span"); nombre.textContent = `hilo ${i + 1}`;
+    const pista = document.createElement("div"); pista.className = "pista"; pista.id = `pista-${i}`;
+    fila.append(nombre, pista); cont.append(fila);
+  }
+}
+
+function pintarCarriles() {
+  if (!app.workers) return;
+  const ahora = app.corriendo ? (performance.now() - app.inicioLocal) / 1000 : app.tFin;
+  const tmax = Math.max(ahora, app.tFin, 1);
+  for (let i = 0; i < app.workers; i++) { const p = $(`pista-${i}`); if (p) p.innerHTML = ""; }
+  for (const [archivo, b] of Object.entries(app.barras)) {
+    const pista = $(`pista-${b.carril}`); if (!pista) continue;
+    const fin = b.t1 ?? ahora;
+    const div = document.createElement("div");
+    div.className = "barra" + (b.t1 === null ? " corriendo" : "");
+    div.style.left = (b.t0 / tmax * 100) + "%";
+    div.style.width = Math.max((fin - b.t0) / tmax * 100, 0.3) + "%";
+    div.title = `${archivo}: ${fmt(fin - b.t0)} s`;
+    div.onclick = () => elegir(archivo);
+    pista.append(div);
+  }
+  $("eje-fin").textContent = fmt(tmax) + " s";
+}
+
+// ---------- números ----------
+function pintarNumeros() {
+  const hechos = Object.keys(app.resultados).length;
+  const t = app.corriendo ? (performance.now() - app.inicioLocal) / 1000 : app.tFin;
+  $("n-hechos").textContent = `${hechos} / ${app.total || hechos}`;
+  $("n-tiempo").textContent = fmt(t) + " s";
+  $("n-ritmo").textContent = hechos && t ? fmt(hechos / t * 60) : "-";
+  $("n-promedio").textContent = hechos && t ? fmt(t / hechos, 2) + " s" : "-";
+  $("barra-progreso").style.width = (app.total ? hechos / app.total * 100 : 0) + "%";
+}
+
+// ---------- ranking ----------
+function pintarTabla() {
+  const filas = Object.values(app.resultados).sort((a, b) => b.puntaje - a.puntaje);
+  const tb = $("tabla"); tb.innerHTML = "";
+  $("tabla-vacia").hidden = filas.length > 0;
+  filas.forEach((f, i) => {
+    const tr = document.createElement("tr");
+    if (f.archivo === app.elegido) tr.className = "elegida";
+    tr.onclick = () => elegir(f.archivo);
+    const celda = (txt, clase) => { const td = document.createElement("td"); td.textContent = txt; if (clase) td.className = clase; tr.append(td); return td; };
+    celda(i + 1, "num");
+    celda(f.nombre || "?");
+    const tdP = document.createElement("td");
+    tdP.innerHTML = `<div class="puntaje"><span></span><i></i></div>`;
+    tdP.querySelector("span").textContent = f.puntaje;
+    tdP.querySelector("i").style.width = (f.puntaje * 1.2) + "px";
+    tr.append(tdP);
+    celda(f.cumple_excluyentes ? "Sí" : "No", f.cumple_excluyentes ? "" : "no");
+    celda((f.tecnologias || []).join(", "), "tecs");
+    celda(f.duracion != null ? fmt(f.duracion) : "", "num");
+    celda(f.archivo, "tecs");
+    tb.append(tr);
+  });
+  pintarNumeros();
+}
+
+// ---------- detalle y correcciones ----------
+async function elegir(archivo) {
+  app.elegido = archivo;
+  pintarTabla();
+  $("panel-detalle").hidden = false;
+  $("msg-ejemplo").textContent = "";
+  $("detalle-texto").textContent = "cargando...";
+  refrescarDetalle(true);
+  const r = await (await fetch("/api/cv?archivo=" + encodeURIComponent(archivo))).json();
+  if (app.elegido === archivo) $("detalle-texto").textContent = r.texto;
+  $("panel-detalle").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function refrescarDetalle(llenarFormulario = false) {
+  const f = app.resultados[app.elegido];
+  if (!f) return;
+  $("detalle-titulo").textContent = `Detalle: ${f.nombre || "?"} (${f.archivo})`;
+  let crudo = f.crudo || "";
+  try { crudo = JSON.stringify(JSON.parse(crudo), null, 2); } catch (_) {}
+  $("detalle-crudo").textContent = crudo || "(sin respuesta)";
+  $("detalle-puntaje").textContent = `${f.puntaje} puntos\n${f.motivo || ""}`;
+  if (llenarFormulario) {
+    $("c-nombre").value = f.nombre || "";
+    $("c-anios").value = f.anios_experiencia ?? 0;
+    $("c-tecs").value = (f.tecnologias || []).join(", ");
+    $("c-ingles").value = f.nivel_ingles || "no dice";
+    $("c-resumen").value = f.resumen || "";
+  }
+}
+
+$("guardar-ejemplo").onclick = async () => {
+  if (!app.elegido) return;
+  const respuesta = {
+    nombre: $("c-nombre").value.trim(),
+    anios_experiencia: parseInt($("c-anios").value || "0", 10),
+    tecnologias: $("c-tecs").value.split(",").map(s => s.trim()).filter(Boolean),
+    nivel_ingles: $("c-ingles").value,
+    resumen: $("c-resumen").value.trim(),
+  };
+  const r = await post("/api/ejemplos", { archivo: app.elegido, respuesta });
+  pintarEjemplos(r.ejemplos);
+  $("msg-ejemplo").textContent = "Guardado. Se usa en los próximos pedidos a la IA.";
+};
+
+function pintarEjemplos(lista) {
+  const ul = $("ejemplos"); ul.innerHTML = "";
+  if (!lista.length) ul.innerHTML = `<li class="vacio">Todavía no hay correcciones.</li>`;
+  lista.forEach((e, i) => {
+    const li = document.createElement("li");
+    const txt = document.createElement("span");
+    const activo = i >= lista.length - app.maxEjemplos;
+    txt.textContent = `${e.nombre || e.archivo}${activo ? "" : " (no se usa)"}`;
+    const b = document.createElement("button"); b.className = "secundario"; b.textContent = "Quitar";
+    b.onclick = async () => pintarEjemplos((await post("/api/ejemplos/borrar", { archivo: e.archivo })).ejemplos);
+    li.append(txt, b); ul.append(li);
+  });
+  $("nota-ejemplos").textContent =
+    `Las correcciones se guardan en datos/ejemplos.json. Las últimas ${app.maxEjemplos} se le muestran al modelo ` +
+    "como casos resueltos dentro del pedido. El modelo no se reentrena: aprende del contexto." +
+    (app.simulada ? " En modo simulado se guardan, pero no cambian las respuestas." : "");
+}
+
+// ---------- historial ----------
+function agregarHistorial(h) {
+  const tr = document.createElement("tr");
+  const ritmo = h.segundos ? fmt(h.cvs / h.segundos * 60) : "-";
+  [h.modo + (h.cancelada ? " (cortada)" : ""), h.workers, h.cvs, fmt(h.segundos), ritmo].forEach((v, i) => {
+    const td = document.createElement("td"); td.textContent = v; if (i) td.className = "num"; tr.append(td);
+  });
+  $("historial").prepend(tr);
+}
+
+function pintarTodo() { pintarCarriles(); pintarNumeros(); }
+setInterval(() => { if (app.corriendo) pintarTodo(); }, 200);
+
+cargarEstado();
+</script>
+</body>
+</html>
